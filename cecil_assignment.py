@@ -116,7 +116,7 @@ def _(mo):
 @app.cell
 def _(make_axis, model):
     axis1_pos = [
-        "innovative",
+        "forward-thinking innovation",
         "high R&D spend",
         "high patent activity",
         "high % revenue from new products",
