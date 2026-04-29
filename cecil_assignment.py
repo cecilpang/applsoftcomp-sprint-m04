@@ -31,7 +31,7 @@ def _():
     from sentence_transformers import SentenceTransformer
     from drawdata import ScatterWidget
 
-    return SentenceTransformer, mo, np, pd
+    return SentenceTransformer, alt, mo, np, pd
 
 
 @app.cell
@@ -169,6 +169,110 @@ def _(axis_growth, axis_innovative, df, model):
     y = score_words(df["name"].tolist(), axis_growth, model)
     df_scored = df.assign(x=x, y=y)
     df_scored.head()
+    return (df_scored,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Step 2 — Visualize
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    color_by = mo.ui.dropdown(
+        options={
+            "sector (categorical)": "sector",
+        },
+        value="sector (categorical)",
+        label="Color by: ",
+    )
+    return (color_by,)
+
+
+@app.cell
+def _(alt, color_by, df_scored, mo):
+    # Okabe–Ito palette — categorical, colorblind-safe.
+    SECTOR_COLORS = {
+        "Communication Services": "#009E73",
+        "Consumer Discretionary": "#0072B2",
+        "Consumer Staples": "#D55E00",
+        "Energy": "#E69F00",
+        "Financials": "#56B4E9",
+        'Health Care': "#CC79A7",  # reddish purple
+        'Industrials': "#F0E442",  # yellow
+        'Information Technology': "#000000",  # black (high contrast)
+        'Materials': "#999999",  # medium gray
+        'Real Estate': "#8B4513",  # brown (earth tone, distinct from orange)
+        'Utilities': "#6A3D9A"   # deep purple
+    }
+
+    # GaWC rating ordered from "most globally connected" to "least".
+    BUSINESS_ORDER = [
+        "Alpha++",
+        "Alpha+",
+        "Alpha",
+        "Alpha-",
+        "Beta+",
+        "Beta",
+        "Beta-",
+        "Gamma+",
+        "Gamma",
+        "Gamma-",
+        "High Sufficiency",
+        "Sufficiency",
+    ]
+
+    if color_by.value == "sector":
+        # Categorical → qualitative palette.
+        _color = alt.Color(
+            "sector:N",
+            scale=alt.Scale(
+                domain=list(SECTOR_COLORS.keys()),
+                range=list(SECTOR_COLORS.values()),
+            ),
+            legend=alt.Legend(title="Sector"),
+        )
+
+    chart = (
+        alt.Chart(df_scored)
+        .mark_circle(size=90, opacity=0.8, stroke="white", strokeWidth=0.6)
+        .encode(
+            x=alt.X(
+                "x:Q",
+                title="← not innovative          innovative →",
+                scale=alt.Scale(zero=False, padding=20),
+                axis=alt.Axis(grid=False),
+            ),
+            y=alt.Y(
+                "y:Q",
+                title="← stable          growing →",
+                scale=alt.Scale(zero=False, padding=20),
+                axis=alt.Axis(grid=False),
+            ),
+            color=_color,
+            tooltip=[
+                alt.Tooltip("name:N", title="Company"),
+                alt.Tooltip("sector:N", title="Sector"),
+                alt.Tooltip("x:Q", title="megacity score", format=".3f"),
+                alt.Tooltip("y:Q", title="tropical-warm score", format=".3f"),
+            ],
+        )
+        .properties(
+            width=720,
+            height=500,
+            title="SP 500 companies in a 2D semantic space (hover for details)",
+        )
+        .configure_view(strokeWidth=0)
+        .configure_axis(labelFontSize=11, titleFontSize=12)
+        .configure_legend(labelFontSize=11, titleFontSize=12)
+        .interactive()  # pan + zoom
+    )
+
+    # Stack the dropdown directly above the chart so it is always visible.
+    mo.vstack([color_by, chart])
     return
 
 
