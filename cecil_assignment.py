@@ -193,7 +193,7 @@ def _(mo):
 
 
 @app.cell
-def _(alt, color_by, df_scored, mo):
+def _(alt, color_by, df_scored, mo, pd):
     # Okabe–Ito palette — categorical, colorblind-safe.
     SECTOR_COLORS = {
         "Communication Services": "#009E73",
@@ -236,7 +236,19 @@ def _(alt, color_by, df_scored, mo):
             legend=alt.Legend(title="Sector"),
         )
 
-    chart = (
+    zero_line_data = pd.DataFrame({"x": [0], "y": [0]})
+    vertical_zero_line = (
+        alt.Chart(zero_line_data)
+        .mark_rule(color="#666666", strokeDash=[4, 4], strokeWidth=1)
+        .encode(x="x:Q")
+    )
+    horizontal_zero_line = (
+        alt.Chart(zero_line_data)
+        .mark_rule(color="#666666", strokeDash=[4, 4], strokeWidth=1)
+        .encode(y="y:Q")
+    )
+
+    points = (
         alt.Chart(df_scored)
         .mark_circle(size=90, opacity=0.8, stroke="white", strokeWidth=0.6)
         .encode(
@@ -260,6 +272,10 @@ def _(alt, color_by, df_scored, mo):
                 alt.Tooltip("y:Q", title="growth score", format=".3f"),
             ],
         )
+    )
+
+    chart = (
+        (points + vertical_zero_line + horizontal_zero_line)
         .properties(
             width=720,
             height=500,
@@ -273,6 +289,86 @@ def _(alt, color_by, df_scored, mo):
 
     # Stack the dropdown directly above the chart so it is always visible.
     mo.vstack([color_by, chart])
+    return (SECTOR_COLORS,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Focused sector view
+
+    This chart shows only **Information Technology**, **Financials**, and
+    **Health Care** so their positions are easier to compare directly.
+    """)
+    return
+
+
+@app.cell
+def _(SECTOR_COLORS, alt, df_scored, pd):
+    focus_sectors = ["Information Technology", "Financials", "Health Care"]
+    df_focus = df_scored[df_scored["sector"].isin(focus_sectors)].copy()
+    focus_zero_line_data = pd.DataFrame({"x": [0], "y": [0]})
+
+    focus_color = alt.Color(
+        "sector:N",
+        scale=alt.Scale(
+            domain=focus_sectors,
+            range=[SECTOR_COLORS[sector] for sector in focus_sectors],
+        ),
+        legend=alt.Legend(title="Sector"),
+    )
+
+    focus_vertical_zero_line = (
+        alt.Chart(focus_zero_line_data)
+        .mark_rule(color="#666666", strokeDash=[4, 4], strokeWidth=1)
+        .encode(x="x:Q")
+    )
+    focus_horizontal_zero_line = (
+        alt.Chart(focus_zero_line_data)
+        .mark_rule(color="#666666", strokeDash=[4, 4], strokeWidth=1)
+        .encode(y="y:Q")
+    )
+
+    focus_points = (
+        alt.Chart(df_focus)
+        .mark_circle(size=110, opacity=0.85, stroke="white", strokeWidth=0.7)
+        .encode(
+            x=alt.X(
+                "x:Q",
+                title="← not innovative          innovative →",
+                scale=alt.Scale(zero=False, padding=20),
+                axis=alt.Axis(grid=False),
+            ),
+            y=alt.Y(
+                "y:Q",
+                title="← stable          growing →",
+                scale=alt.Scale(zero=False, padding=20),
+                axis=alt.Axis(grid=False),
+            ),
+            color=focus_color,
+            tooltip=[
+                alt.Tooltip("name:N", title="Company"),
+                alt.Tooltip("sector:N", title="Sector"),
+                alt.Tooltip("x:Q", title="innovative score", format=".3f"),
+                alt.Tooltip("y:Q", title="growth score", format=".3f"),
+            ],
+        )
+    )
+
+    focus_chart = (
+        (focus_points + focus_vertical_zero_line + focus_horizontal_zero_line)
+        .properties(
+            width=720,
+            height=500,
+            title="Focused comparison: Information Technology, Financials, and Health Care",
+        )
+        .configure_view(strokeWidth=0)
+        .configure_axis(labelFontSize=11, titleFontSize=12)
+        .configure_legend(labelFontSize=11, titleFontSize=12)
+        .interactive()
+    )
+
+    focus_chart
     return
 
 
@@ -283,9 +379,9 @@ def _(mo):
 
     1. Overall significant bias towards the positive end of the Y-axis and most of the companies are above 0.0 on the y-axis. That is, vast majority of the companies are growing, regarless of which sector.
     2. For innovation, overall biased towards the positive end but only slighly and much less significant than that of the growth bias. There are still a lot (~40%) sitting on the negative end of x-axis.
-    4. In the Information Technology sector, there are slightly more companies on the negative innovative side. This is a surprise. I would expect the opposite.
-    5. The financial sector is opposite to IT: bias towards positive innovation.
-    6. IT has some outliers on the positive innovative end. More so than other sectors.
+    3. In the Information Technology sector, there are slightly more companies on the negative innovative side. This is a surprise. I would expect the opposite.
+    4. Both the financials and the health care sectors are opposite to IT: bias towards positive innovation.
+    5. IT and financials have some outliers on the positive innovative end. More so than other sectors.
     """)
     return
 
