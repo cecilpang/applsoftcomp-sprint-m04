@@ -68,5 +68,21 @@ def score_words(words, axis, embedding_model):
     return proj
 
 
+@app.cell
+def _(pd):
+    df = pd.read_csv(
+        "data/sp500.csv",
+        dtype={
+            "name": "string",
+            "sector": "category",
+        },
+    )
+    print(f"{len(df)} companies across {df['sector'].nunique()} sectors.")
+    print(f"sectors: {list(df['sector'].unique())})")
+    df.sample(20)
+    return (df,)
+
+
 if __name__ == "__main__":
     app.run()
+
