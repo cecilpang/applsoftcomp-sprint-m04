@@ -21,13 +21,26 @@ __generated_with = "0.23.4"
 app = marimo.App(width="medium")
 
 
+@app.cell(hide_code=True)
+def _():
+    import marimo as mo
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import altair as alt
+    from sentence_transformers import SentenceTransformer
+    from drawdata import ScatterWidget
+
+    return SentenceTransformer, mo, np, pd
+
+
 @app.cell
 def _(SentenceTransformer):
     ## Instantiate SentenseTransformer model
 
     model = SentenceTransformer("all-mpnet-base-v2")  # all-MiniLM-L6-v2 if you want faster but noisier results
     model
-    return
+    return (model,)
 
 
 @app.cell
@@ -52,7 +65,7 @@ def _(np):
 
         return v / (np.linalg.norm(v) + 1e-10)
 
-    return
+    return (make_axis,)
 
 
 @app.function
@@ -70,6 +83,8 @@ def score_words(words, axis, embedding_model):
 
 @app.cell
 def _(pd):
+    ## Read in SP 500 companies
+
     df = pd.read_csv(
         "data/sp500.csv",
         dtype={
@@ -83,6 +98,79 @@ def _(pd):
     return (df,)
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Step 1 — Design two semantic axes
+
+
+
+    Our two axes for companies:
+
+    - **Horizontal** — *not innovative* (−) ↔ *innovative* (+)
+    - **Vertical** — *low growth* (−) ↔ *high growth* (+)
+    """)
+    return
+
+
+@app.cell
+def _(make_axis, model):
+    axis1_pos = [
+        "innovative",
+        "high R&D spend",
+        "high patent activity",
+        "high % revenue from new products",
+        "high AI/tech adoption",
+    ]
+
+    axis1_neg = [
+        "operationally focused with limited innovation",
+        "incremental rather than breakthrough-driven",
+        "mature and slow to adopt new technologies",
+        "primarily execution-driven rather than innovation-led",
+        "conservative in product and technology evolution",
+    ]
+    axis_innovative = make_axis(axis1_pos, axis1_neg, model)
+    return (axis_innovative,)
+
+
+@app.cell
+def _(make_axis, model):
+    axis2_pos = [
+        "rapidly scaling with strong revenue momentum",
+        "experiencing accelerated growth and market expansion",
+        "high-velocity growth driven by strong demand",
+        "scaling quickly with expanding market share",
+        "growth-driven with significant upside potential",
+    ]
+    axis2_neg = [
+        "experiencing modest, steady growth",
+        "operating in a mature, slow-expansion phase",
+        "limited growth with consistent performance",
+        "growing at a measured, incremental pace",
+        "low-growth but stable and predictable",
+    ]
+    axis_growth = make_axis(axis2_pos, axis2_neg, model)
+    return (axis_growth,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Score every company along both axes
+    For each company name we compute its embedding and take the dot product with each axis.
+    """)
+    return
+
+
+@app.cell
+def _(axis_growth, axis_innovative, df, model):
+    x = score_words(df["name"].tolist(), axis_innovative, model)
+    y = score_words(df["name"].tolist(), axis_growth, model)
+    df_scored = df.assign(x=x, y=y)
+    df_scored.head()
+    return
+
+
 if __name__ == "__main__":
     app.run()
-
