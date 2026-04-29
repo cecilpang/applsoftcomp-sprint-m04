@@ -256,8 +256,8 @@ def _(alt, color_by, df_scored, mo):
             tooltip=[
                 alt.Tooltip("name:N", title="Company"),
                 alt.Tooltip("sector:N", title="Sector"),
-                alt.Tooltip("x:Q", title="megacity score", format=".3f"),
-                alt.Tooltip("y:Q", title="tropical-warm score", format=".3f"),
+                alt.Tooltip("x:Q", title="innovative score", format=".3f"),
+                alt.Tooltip("y:Q", title="growth score", format=".3f"),
             ],
         )
         .properties(
@@ -273,6 +273,25 @@ def _(alt, color_by, df_scored, mo):
 
     # Stack the dropdown directly above the chart so it is always visible.
     mo.vstack([color_by, chart])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Step 3 — Observations
+
+    1. Overall significant bias towards the positive end of the Y-axis and most of the companies are above 0.0 on the y-axis. That is, vast majority of the companies are growing, regarless of which sector.
+    2. For innovation, overall biased towards the positive end but only slighly and much less significant than that of the growth bias. There are still a lot (~40%) sitting on the negative end of x-axis.
+    4. In the Information Technology sector, there are slightly more companies on the negative innovative side. This is a surprise. I would expect the opposite.
+    5. The financial sector is opposite to IT: bias towards positive innovation.
+    6. IT has some outliers on the positive innovative end. More so than other sectors.
+    """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
