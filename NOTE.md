@@ -1,0 +1,8 @@
+# Observations
+### From the overall chart:
+1. Almost all of the companies are in the low risk / high growth quadrant, with a small number in the low risk/slow growth quadrant and only 6 in the other two quadrants combined. This could mean SP 500 tends to select low risk/high growth companies to include in the index, or that low risk/high growth leads to the qualities that SP 500 looks for. This makes sense because low risk/high growth is the most desirable kind of companies.
+2. There is a correlation between risk and growth. Lower the risk, higher the growth. The regression line is tilting upwards at approximately 35 degrees. Note that this correlation is among the SP 500 companies. According to the embedding vectors, the concepts of risk and growth themselves are othorganal, with consine distance larger than 1.
+### A second chart was created to focus on the three sectors I am most interested in: IT, financials, and health care. These are observations from this chart:
+1. Among the 3 sectors, the risk/growth regression line is steepest for Financials, while IT and health care are similar.
+2. Financials clustered in the lowest risk area, while IT companies have higher risk overall and health care in the middle.
+3. Health care has the narrowest range of risks, indicating that health care companies are similar to each other in risk tolerance. More so than companies in IT and Financials.

@@ -8,4 +8,5 @@ dependencies = [
     "pandas>=2.3.3",
     "pymupdf",
     "requests>=2.33.1",
+    "vl-convert-python>=1.7.0",
 ]

@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-mkdir -p data figures
+mkdir -p data figs
 
 # ---------------------------------------------------------------------------
 # Step 1 — (re)generate raw data.
@@ -44,6 +44,7 @@ mkdir -p data figures
 # is just for reproducibility — `marimo run submission.py ...` is fine
 # too if marimo is already installed.
 # ---------------------------------------------------------------------------
-uvx marimo run --sandbox submission.py --output figures/scatter.png
+uv sync
+uvx marimo run --sandbox submission.py 
 
-echo "Done. See figures/scatter.png"
+echo "Done. See figs/sp500_all_sectors.png and figs/sp500_focused_sectors.png"

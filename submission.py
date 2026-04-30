@@ -12,6 +12,7 @@
 #     "anywidget>=0.9",
 #     "seaborn==0.13.2",
 #     "altair==6.0.0",
+#     "vl-convert-python>=1.7.0",
 # ]
 # ///
 
@@ -28,10 +29,11 @@ def _():
     import pandas as pd
     import matplotlib.pyplot as plt
     import altair as alt
+    from pathlib import Path
     from sentence_transformers import SentenceTransformer
     from drawdata import ScatterWidget
 
-    return SentenceTransformer, alt, mo, np, pd
+    return Path, SentenceTransformer, alt, mo, np, pd
 
 
 @app.cell(hide_code=True)
@@ -96,6 +98,17 @@ def score_words(words, axis, embedding_model):
     proj = emb @ axis
 
     return proj
+
+
+@app.function
+def save_chart_png(chart, output_path, scale_factor=2):
+    """Save an Altair chart as PNG without stopping notebook execution."""
+    try:
+        output_path.parent.mkdir(exist_ok=True)
+        chart.save(str(output_path), scale_factor=scale_factor)
+        print(f"Saved figure: {output_path}")
+    except (ImportError, RuntimeError, ValueError) as exc:
+        print(f"Could not save {output_path}: {exc}")
 
 
 @app.cell
@@ -472,7 +485,7 @@ def _(mo):
 
 
 @app.cell
-def _(alt, color_by, df_scored, pd, selected_axes):
+def _(Path, alt, color_by, df_scored, pd, selected_axes):
     # Okabe–Ito palette — categorical, colorblind-safe.
     SECTOR_COLORS = {
         "Communication Services": "#009E73",
@@ -691,6 +704,8 @@ def _(alt, color_by, df_scored, pd, selected_axes):
         .interactive()  # pan + zoom
     )
 
+    save_chart_png(chart, Path("figs") / "sp500_all_sectors.png")
+
     chart
     return SECTOR_COLORS, SECTOR_SHAPES
 
@@ -707,7 +722,7 @@ def _(mo):
 
 
 @app.cell
-def _(SECTOR_COLORS, SECTOR_SHAPES, alt, df_scored, pd, selected_axes):
+def _(Path, SECTOR_COLORS, SECTOR_SHAPES, alt, df_scored, pd, selected_axes):
     focus_sectors = [
         "Information Technology",
         "Financials",
@@ -907,6 +922,8 @@ def _(SECTOR_COLORS, SECTOR_SHAPES, alt, df_scored, pd, selected_axes):
         .configure_legend(labelFontSize=11, titleFontSize=12)
         .interactive()
     )
+
+    save_chart_png(focus_chart, Path("figs") / "sp500_focused_sectors.png")
 
     focus_chart
     return
