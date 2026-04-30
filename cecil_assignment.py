@@ -34,6 +34,23 @@ def _():
     return SentenceTransformer, alt, mo, np, pd
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # S&P 500 Semantic Axis Map
+
+    This notebook places S&P 500 companies into a two-dimensional semantic space.
+    Each axis is built from two sets of descriptive phrases: one negative pole
+    and one positive pole. Company names are embedded with a SentenceTransformer
+    model, then projected onto the selected axis vectors.
+
+    The final charts use sector as the categorical attribute. Sector is encoded
+    with both color and shape, and the zero lines divide the map into
+    interpretable quadrants such as **high risk / slow growth**.
+    """)
+    return
+
+
 @app.cell
 def _(SentenceTransformer):
     ## Instantiate SentenseTransformer model
@@ -101,13 +118,18 @@ def _(pd):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Step 1 — Design two semantic axes
+    ### Step 1 — Define Candidate Axes
 
+    The list below defines ten candidate business axes. Each candidate axis has:
 
+    - a short `name`,
+    - a `negative_label` and `positive_label` for chart labels,
+    - positive-pole phrases in `pos`,
+    - negative-pole phrases in `neg`.
 
-    Candidate axes for companies are defined below. The final horizontal and
-    vertical axes are controlled by `selected_axis_indices`, so changing that
-    one tuple updates scoring, chart labels, and tooltips together.
+    For each axis, the notebook embeds the positive and negative phrase sets,
+    averages each pole, subtracts the negative pole from the positive pole, and
+    normalizes the result into a unit-length semantic direction.
     """)
     return
 
@@ -345,6 +367,24 @@ def _(make_axis, model, np):
     return axes, candidate_axis_vectors
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Compare Candidate Axes
+
+    The output above ranks candidate-axis pairs by cosine distance:
+
+    \[
+    \text{cosine distance} = 1 - (\text{axis}_i \cdot \text{axis}_j)
+    \]
+
+    Since every axis vector is normalized, larger cosine distances indicate more
+    different semantic directions. This helps identify pairs of axes that are
+    less redundant before choosing the final two-dimensional view.
+    """)
+    return
+
+
 @app.cell
 def _(axes, candidate_axis_vectors):
     # Change this tuple to choose the two candidate axes used everywhere below.
@@ -371,8 +411,20 @@ def _(axes, candidate_axis_vectors):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Score every company along both axes
-    For each company name we compute its embedding and take the dot product with each axis.
+    ### Select and Score the Final Axes
+
+    `selected_axis_indices` is the single control point for the final map. The
+    first value chooses the x-axis and the second value chooses the y-axis. In
+    the current notebook:
+
+    - x-axis: candidate axis `1`, **Growth**,
+    - y-axis: candidate axis `3`, **Risk**.
+
+    Changing `selected_axis_indices` automatically updates company scores, axis
+    labels, tooltip labels, and quadrant labels.
+
+    The next cell scores each company by embedding its name and taking the dot
+    product with the selected x and y axis vectors.
     """)
     return
 
@@ -390,6 +442,19 @@ def _(df, model, selected_axis_vectors):
 def _(mo):
     mo.md(r"""
     ### Step 2 — Visualize
+
+    The visualizations encode the selected semantic scores and company sector:
+
+    - **Position** shows the selected semantic-axis scores.
+    - **Color** shows sector.
+    - **Shape** also shows sector, making the category encoding redundant.
+    - **Dashed zero lines** mark the boundary between negative and positive
+      sides of each selected axis.
+    - **Quadrant labels** combine the x/y pole labels, such as
+      **high risk / slow growth** and **low risk / high growth**.
+
+    The first chart shows all sectors. The focused chart below filters to a
+    smaller sector subset for easier comparison.
     """)
     return
 
@@ -435,22 +500,6 @@ def _(alt, color_by, df_scored, pd, selected_axes):
         "Real Estate": "arrow",
         "Utilities": "wedge",
     }
-
-    # GaWC rating ordered from "most globally connected" to "least".
-    BUSINESS_ORDER = [
-        "Alpha++",
-        "Alpha+",
-        "Alpha",
-        "Alpha-",
-        "Beta+",
-        "Beta",
-        "Beta-",
-        "Gamma+",
-        "Gamma",
-        "Gamma-",
-        "High Sufficiency",
-        "Sufficiency",
-    ]
 
     if color_by.value == "sector":
         # Categorical → qualitative palette.
@@ -870,22 +919,18 @@ def _(mo):
 
     From the overall chart:
 
-    1. Almost all of the companies are in the low risk / high growth quadrant, with a small number in the low risk/slow growth quadrant. Only 6 in the other two quadrants combined. This could mean SP 500 tends to select low risk/high growth companies to include in the index.
+    1. Almost all of the companies are in the low risk / high growth quadrant, with a small number in the low risk/slow growth quadrant and only 6 in the other two quadrants combined. This could mean SP 500 tends to select low risk/high growth companies to include in the index, or that low risk/high growth leads to the qualities that SP 500 looks for. This makes sense because low risk/high growth is the most desirable kind of companies.
 
-    2. There is a correlation between risk and growth. Lower the risk, higher the growth. The regression line is tilting upwards at approximately 30 degrees. Note that this correlation is among the SP 500 companies. According to the embedding vectors, the concepts of risk and growth are othorganal, with consine distance larger than 1.
+    2. There is a correlation between risk and growth. Lower the risk, higher the growth. The regression line is tilting upwards at approximately 35 degrees. Note that this correlation is among the SP 500 companies. According to the embedding vectors, the concepts of risk and growth themselves are othorganal, with consine distance larger than 1.
 
-    1. Growth band simarlar, but risk range different.
-    1. Overall significant bias towards the positive end of the Y-axis and most of the companies are above 0.0 on the y-axis. That is, vast majority of the companies are growing, regarless of which sector.
-    2. For innovation, overall biased towards the positive end but only slighly and much less significant than that of the growth bias. There are still a lot (~40%) sitting on the negative end of x-axis.
-    3. In the Information Technology sector, there are slightly more companies on the negative innovative side. This is a surprise. I would expect the opposite.
-    4. Both the financials and the health care sectors are opposite to IT: bias towards positive innovation.
-    5. IT and financials have some outliers on the positive innovative end. More so than other sectors.
+    A second chart was created to focus on the three sectors I am most interested in: IT, financials, and health care. These are observations from this chart:
+
+    1. Among the 3 sectors, the risk/growth regression line is steepest for Financials, while IT and health care are similar.
+
+    2. Financials clustered in the lowest risk area, while IT companies have higher risk overall and health care in the middle.
+
+    3. Health care has the narrowest range of risks, indicating that health care companies are similar to each other in risk tolerance. More so than companies in IT and Financials.
     """)
-    return
-
-
-@app.cell
-def _():
     return
 
 
